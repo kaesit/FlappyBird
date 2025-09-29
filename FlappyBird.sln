@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlappyBird", "FlappyBird\FlappyBird\FlappyBird.csproj", "{23D878F2-6AD2-464C-B046-18C9AA47F184}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlappyBird.Client", "FlappyBird\FlappyBird.Client\FlappyBird.Client.csproj", "{F3948273-E4E0-4615-B7FE-B6F06AA6214E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{23D878F2-6AD2-464C-B046-18C9AA47F184}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23D878F2-6AD2-464C-B046-18C9AA47F184}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23D878F2-6AD2-464C-B046-18C9AA47F184}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23D878F2-6AD2-464C-B046-18C9AA47F184}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3948273-E4E0-4615-B7FE-B6F06AA6214E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3948273-E4E0-4615-B7FE-B6F06AA6214E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3948273-E4E0-4615-B7FE-B6F06AA6214E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3948273-E4E0-4615-B7FE-B6F06AA6214E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

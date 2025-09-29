@@ -1,0 +1,18 @@
+.game-container {
+    position: absolute;
+    width: 350px;
+    height: 500px;
+    background-color: lightblue;
+    overflow: hidden;
+}
+
+.bird {
+    position: relative;
+    left: 50px;
+    width: 30px;
+    height: 30px;
+    background-color: yellow;
+    border-radius: 10%;
+}
+
+/* Kuş ve Boru stilleri aşağıda devam etmeli... */

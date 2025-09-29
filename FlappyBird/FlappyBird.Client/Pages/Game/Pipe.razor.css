@@ -1,0 +1,25 @@
+/* Boru Konteyneri: Konumlandırma için kritik */
+.pipe-container {
+    position: relative;
+    width: 60px;
+    height: 500px; /* Oyun yüksekliği kadar olmalı */
+    top: 0;
+    z-index: 50; /* Kuşun z-index'inden büyük olmalı */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tekil Boru Parçaları */
+.pipe {
+    position: relative;
+    width: 60px;
+    background-color: green;
+}
+
+.top-pipe {
+    top: 0;
+}
+
+.bottom-pipe {
+    bottom: 0;
+}
