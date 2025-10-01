@@ -1,0 +1,59 @@
+name: Deploy Blazor WebAssembly to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master   # Kod değişikliklerini deploy etmek için
+  workflow_dispatch:  # Manuel tetikleme
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Kodları checkout et
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2️⃣ .NET ortamını ayarla
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+
+      # 3️⃣ Restore ve publish Blazor Client projesi
+      - name: Restore & Publish
+        run: |
+          dotnet restore FlappyBird/FlappyBird.Client/FlappyBird.Client.csproj
+          dotnet publish FlappyBird/FlappyBird.Client/FlappyBird.Client.csproj -c Release -o wwwroot
+
+      # 4️⃣ Base href güncelle (repo adı: FlappyBird)
+      - name: Update base href
+        run: |
+          if [ -f wwwroot/index.html ]; then
+            sed -i '' 's#<base href="/" />#<base href="/FlappyBird/" />#g' wwwroot/index.html
+            echo "Base href updated"
+            grep "base href" wwwroot/index.html
+          else
+            echo "index.html not found!"
+            exit 1
+          fi
+
+      # 5️⃣ SPA 404 sayfası
+      - name: Copy index.html to 404.html
+        run: cp wwwroot/index.html wwwroot/404.html
+
+      # 6️⃣ .nojekyll dosyası ekle (GitHub Pages için)
+      - name: Add .nojekyll
+        run: touch wwwroot/.nojekyll
+
+      # 7️⃣ Deploy to gh-pages
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: wwwroot
+          branch: gh-pages
+          clean: true
