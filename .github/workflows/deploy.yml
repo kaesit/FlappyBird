@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 permissions:
@@ -12,27 +12,47 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - name: Setup .NET
+      - name: Setup .NET 9.0
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '9.0.x'
 
-      - name: Publish
-        run: dotnet publish -c Release -o release --nologo
+      - name: Restore dependencies
+        run: dotnet restore FlappyBird/FlappyBird.csproj
 
-      - name: Change base-tag in index.html
-        run: sed -i 's/<base href="\/" \/>/<base href="\/FlappyBird\/" \/>/g' release/wwwroot/index.html
+      - name: Publish Blazor WebAssembly
+        run: dotnet publish FlappyBird/FlappyBird.csproj -c Release -o output --nologo
+
+      - name: List published files (debug)
+        run: |
+          echo "=== Checking output structure ==="
+          ls -la output/
+          echo "=== Checking wwwroot ==="
+          ls -la output/wwwroot/ || echo "No wwwroot found"
+
+      - name: Change base href in index.html
+        run: |
+          sed -i 's/<base href="\/" \/>/<base href="\/FlappyBird\/" \/>/g' output/wwwroot/index.html
+          echo "=== Base tag updated ==="
+          grep "base href" output/wwwroot/index.html
 
       - name: Add .nojekyll file
-        run: touch release/wwwroot/.nojekyll
+        run: touch output/wwwroot/.nojekyll
 
       - name: Copy index.html to 404.html
-        run: cp release/wwwroot/index.html release/wwwroot/404.html
+        run: cp output/wwwroot/index.html output/wwwroot/404.html
+
+      - name: List final files (debug)
+        run: |
+          echo "=== Final files to deploy ==="
+          ls -la output/wwwroot/
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: release/wwwroot
-          branch: master
+          folder: output/wwwroot
+          branch: gh-pages
+          clean: true
