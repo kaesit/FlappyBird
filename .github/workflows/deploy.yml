@@ -11,38 +11,31 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup .NET 9.0
+      - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '9.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore FlappyBird/FlappyBird.csproj
-
-      - name: Publish Blazor WebAssembly
-        run: dotnet publish FlappyBird/FlappyBird.csproj -c Release -o output --nologo
-
-      - name: List published files (debug)
+      - name: Restore & Publish Blazor WebAssembly
         run: |
-          echo "=== Checking output structure ==="
-          ls -la output/
-          echo "=== Checking wwwroot ==="
-          ls -la output/wwwroot/ || echo "No wwwroot found"
+          dotnet restore FlappyBird/FlappyBird.Client/FlappyBird.Client.csproj
+          dotnet publish FlappyBird/FlappyBird.Client/FlappyBird.Client.csproj -c Release -o output
 
       - name: Change base href in index.html
         run: |
-          sed -i 's/<base href="\/" \/>/<base href="\/FlappyBird\/" \/>/g' output/wwwroot/index.html
+          sed -i 's#<base href="/" />#<base href="/FlappyBird/" />#g' output/wwwroot/index.html
           echo "=== Base tag updated ==="
           grep "base href" output/wwwroot/index.html
 
       - name: Add .nojekyll file
         run: touch output/wwwroot/.nojekyll
 
-      - name: Copy index.html to 404.html
+      - name: Copy index.html to 404.html (for SPA routing)
         run: cp output/wwwroot/index.html output/wwwroot/404.html
 
       - name: List final files (debug)
