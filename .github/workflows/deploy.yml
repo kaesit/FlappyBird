@@ -23,16 +23,16 @@ jobs:
         run: dotnet publish -c Release -o release --nologo
 
       - name: Change base-tag in index.html
-        run: sed -i 's/<base href="\/" \/>/<base href="\/FlappyBird\/" \/>/g' wwwroot/index.html
+        run: sed -i 's/<base href="\/" \/>/<base href="\/FlappyBird\/" \/>/g' release/wwwroot/index.html
 
       - name: Add .nojekyll file
         run: touch release/wwwroot/.nojekyll
 
       - name: Copy index.html to 404.html
-        run: wwwroot/index.html wwwroot/404.html
+        run: cp release/wwwroot/index.html release/wwwroot/404.html
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: wwwroot
+          folder: release/wwwroot
           branch: master
