@@ -28,20 +28,20 @@ jobs:
 
       - name: Change base href in index.html
         run: |
-          sed -i 's#<base href="/" />#<base href="/FlappyBird/" />#g' output/wwwroot/index.html
+          sed -i 's#<base href="/" />#<base href="/FlappyBird/" />#g' bin/Release/net9.0/publish/wwwroot/index.html
           echo "=== Base tag updated ==="
           grep "base href" output/wwwroot/index.html
 
       - name: Add .nojekyll file
-        run: touch output/wwwroot/.nojekyll
+        run: touch bin/Release/net9.0/publish/wwwroot/.nojekyll
 
       - name: Copy index.html to 404.html (for SPA routing)
-        run: cp output/wwwroot/index.html output/wwwroot/404.html
+        run: cp output/wwwroot/index.html bin/Release/net9.0/publish/wwwroot/404.html
 
       - name: List final files (debug)
         run: |
           echo "=== Final files to deploy ==="
-          ls -la output/wwwroot/
+          ls -la bin/Release/net9.0/publish/wwwroot
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
