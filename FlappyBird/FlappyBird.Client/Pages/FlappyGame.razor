@@ -1,6 +1,380 @@
-@page "/FlappyGame"
-<h3>FlappyGame</h3>
+@page "/game"
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.WebAssembly.Rendering
+@rendermode @(new InteractiveWebAssemblyRenderMode(prerender: false))
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Flappy Bird</PageTitle>
+
+<style>
+    .game-container {
+        position: relative;
+        width: 400px;
+        height: 500px;
+        background: linear-gradient(180deg, #4ec0ca 0%, #87ceeb 100%);
+        overflow: hidden;
+        cursor: pointer;
+        border: 3px solid #2c3e50;
+        border-radius: 8px;
+    }
+
+    .bird {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        background: #ffd700;
+        border-radius: 50%;
+        border: 2px solid #ff8c00;
+        z-index: 10;
+    }
+
+    .bird::after {
+        content: '';
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: #000;
+        border-radius: 50%;
+        top: 8px;
+        right: 8px;
+    }
+
+    .pipe-container {
+        position: absolute;
+        width: 60px;
+        height: 500px;
+    }
+
+    .pipe {
+        position: absolute;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .top-pipe {
+        top: 0;
+    }
+
+    .bottom-pipe {
+        bottom: 0;
+    }
+
+    .score-display {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 32px;
+        font-weight: bold;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        z-index: 100;
+    }
+
+    .game-over-overlay {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        padding: 30px;
+        border-radius: 12px;
+        text-align: center;
+        z-index: 200;
+        color: white;
+    }
+
+    .game-over-overlay h1 {
+        margin: 0 0 15px 0;
+        font-size: 36px;
+        color: #ffd700;
+    }
+
+    .game-over-overlay p {
+        font-size: 18px;
+        margin: 10px 0;
+    }
+
+    .restart-button {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .restart-button:hover {
+        background: #45a049;
+    }
+
+    .debug-panel {
+        position: absolute;
+        bottom: 5px;
+        left: 5px;
+        background: rgba(0,0,0,0.7);
+        color: #0f0;
+        padding: 5px;
+        font-size: 10px;
+        font-family: monospace;
+        z-index: 150;
+        border-radius: 4px;
+    }
+
+    .pipe-debug-label {
+        position: absolute;
+        bottom: -20px;
+        left: 0;
+        font-size: 8px;
+        color: #fff;
+        background: rgba(0,0,0,0.7);
+        padding: 2px;
+        white-space: nowrap;
+        z-index: 5;
+    }
+</style>
+
+<div class="game-container" @onclick="OnContainerClick">
+    <div class="score-display">SKOR: @score</div>
+
+    @if (!isGameRunning && gameStarted)
+    {
+        <div class="game-over-overlay" role="dialog" aria-modal="true">
+            <h1>OYUN BİTTİ!</h1>
+            <p>Final Skorunuz: <strong>@score</strong></p>
+            <div style="display:flex; gap:12px;">
+                <button class="restart-button" @onclick="RestartGame" @onclick:stopPropagation="true">TEKRAR OYNA</button>
+            </div>
+        </div>
+    }
+    else if (!gameStarted)
+    {
+        <div class="game-over-overlay" role="dialog" aria-modal="true">
+            <h1>FLAPPY BIRD</h1>
+            <p>Zıplamak için tıklayın!</p>
+            <div style="display:flex; gap:12px;">
+                <button class="restart-button" @onclick="StartGameClick" @onclick:stopPropagation="true">BAŞLA</button>
+            </div>
+        </div>
+    }
+
+    @if (isGameRunning)
+    {
+        <div @key="birdElementId" class="bird" id="@birdElementId"
+             style="position:absolute; width:30px; height:30px; left:50px; top:@(Math.Floor(birdY))px;"></div>
+    }
+
+    @* Borular - FIX: Absolute positioning for top and bottom pipes *@
+    @foreach (var pipe in pipes)
+    {
+        const int GameHeight = 500;
+        const int safeMargin = 40;
+
+        var topRaw = pipe.GapYpos;
+        var topHeight = Math.Clamp(topRaw, safeMargin, GameHeight - PipeGap - safeMargin);
+        var bottomHeight = GameHeight - (topHeight + PipeGap);
+        
+        if (bottomHeight < 0)
+        {
+            bottomHeight = 0;
+            topHeight = Math.Max(safeMargin, GameHeight - PipeGap - bottomHeight);
+        }
+
+        if (topHeight + PipeGap + bottomHeight != GameHeight)
+        {
+            topHeight = Math.Clamp(topHeight, safeMargin, GameHeight - PipeGap - safeMargin);
+            bottomHeight = Math.Max(0, GameHeight - (topHeight + PipeGap));
+        }
+
+        <div class="pipe-container" style="left:@(pipe.Xpos)px;" @key="pipe.Id">
+            @* Top Pipe - positioned from top *@
+            <div class="pipe top-pipe"
+                 style="height:@(topHeight)px; 
+                        background: linear-gradient(180deg,#2aa02a,#1e7a1e); 
+                        border:2px solid rgba(0,100,0,0.95); 
+                        box-sizing:border-box;">
+            </div>
+
+            @* Bottom Pipe - positioned from bottom *@
+            <div class="pipe bottom-pipe"
+                 style="height:@(bottomHeight)px; 
+                        background: linear-gradient(0deg,#2aa02a,#1e7a1e); 
+                        border:2px solid rgba(0,100,0,0.95); 
+                        box-sizing:border-box;">
+            </div>
+
+            <div class="pipe-debug-label">
+                @($"ID:{pipe.Id.ToString().Substring(0,4)} X:{(int)pipe.Xpos} TopH:{topHeight}px BotH:{bottomHeight}px Gap:{PipeGap}px")
+            </div>
+        </div>
+    }
+
+    <div class="debug-panel">
+        Birds: @birdDomCount | Pipes: @pipes.Count | JS: @(isJsReady ? "✅" : "❌") | Running: @isGameRunning
+        <br/>Bird Y: @((int)birdY) | Velocity: @velocity.ToString("F1")
+    </div>
+</div>
 
 @code {
-    
+    private double birdY = 250;
+    private double velocity = 0;
+    private int score = 0;
+
+    private const double gravity = 0.5;
+    private const double jumpPower = -7;
+
+    private CancellationTokenSource? loopCts;
+    private bool isGameRunning = false;
+    private bool gameStarted = false;
+    private bool isJsReady = false;
+    private bool isInitialized = false;
+    private bool isDisposed = false;
+
+    private List<PipeModel> pipes = new();
+    private const int PipeSpeed = 3;
+    private const int PipeWidth = 60;
+    private const int PipeSpawnInterval = 120;
+    private const int PipeGap = 150;
+    private int frameCount = 0;
+
+    private readonly Random rng = new();
+    private string birdElementId = $"bird-{Guid.NewGuid():N}";
+    private int birdDomCount = 0;
+
+    private const int BirdHeight = 30;
+    private const int BirdX = 50;
+    private const int BirdWidth = 30;
+
+    public class PipeModel { public Guid Id { get; set; } = Guid.NewGuid(); public double Xpos { get; set; } public int GapYpos { get; set; } public bool Scored { get; set; } = false; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isInitialized && !isDisposed)
+        {
+            isInitialized = true;
+            await Task.Delay(300);
+            for (int i = 0; i < 12; i++)
+            {
+                try
+                {
+                    var count = await JS.InvokeAsync<int>("debugCountBirds");
+                    birdDomCount = count;
+                    isJsReady = true;
+                    try { await JS.InvokeVoidAsync("keepSingleBird", birdElementId); } catch { }
+                    await InvokeAsync(StateHasChanged);
+                    break;
+                }
+                catch { await Task.Delay(120); }
+            }
+        }
+    }
+
+    private void StartGameClick() { gameStarted = true; StartGame(); }
+
+    private void StartGame()
+    {
+        if (isDisposed) return;
+        loopCts?.Cancel(); loopCts?.Dispose();
+
+        score = 0; pipes.Clear(); birdY = 250; velocity = 0; frameCount = 0;
+
+        const int GameHeight = 500;
+        var safeMin = 80;
+        var safeMax = GameHeight - PipeGap - 80;
+        if (safeMax <= safeMin) safeMax = safeMin + 10;
+        pipes.Add(new PipeModel { Xpos = 400, GapYpos = rng.Next(safeMin, safeMax) });
+
+        isGameRunning = true; gameStarted = true;
+        loopCts = new CancellationTokenSource();
+        _ = RunGameLoopAsync(loopCts.Token);
+    }
+
+    private void RestartGame() => StartGame();
+
+    private void OnContainerClick() { if (!gameStarted) StartGameClick(); else if (isGameRunning) Jump(); }
+
+    private void Jump() { if (isGameRunning && !isDisposed) velocity = jumpPower; }
+
+    private async Task RunGameLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested && isGameRunning && !isDisposed)
+            {
+                velocity += gravity; birdY += velocity;
+                frameCount++;
+                SpawnPipes(); MovePipes();
+                if (frameCount > 10) CheckForCollisionAndScoring();
+
+                if (isJsReady && frameCount % 100 == 0) { try { birdDomCount = await JS.InvokeAsync<int>("debugCountBirds"); } catch { } }
+
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(20, token);
+            }
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private void MovePipes() { foreach (var p in pipes) p.Xpos -= PipeSpeed; pipes.RemoveAll(p => p.Xpos < -PipeWidth - 10); }
+
+    private void SpawnPipes()
+    {
+        if (frameCount >= PipeSpawnInterval)
+        {
+            const int GameHeight = 500;
+            var safeMin = 80;
+            var safeMax = GameHeight - PipeGap - 80;
+            if (safeMax <= safeMin) safeMax = safeMin + 10;
+            pipes.Add(new PipeModel { Xpos = 400, GapYpos = rng.Next(safeMin, safeMax) });
+            frameCount = 0;
+        }
+    }
+
+    private void CheckForCollisionAndScoring()
+    {
+        const int GameHeight = 500;
+        const int GroundY = GameHeight - BirdHeight;
+
+        if (birdY <= 0) { birdY = 0; EndGame(); return; }
+        if (birdY >= GroundY) { birdY = GroundY; EndGame(); return; }
+
+        foreach (var pipe in pipes.Where(p => !p.Scored))
+            if (pipe.Xpos + PipeWidth < BirdX) { score++; pipe.Scored = true; }
+
+        const double hitMargin = 4.0;
+        foreach (var pipe in pipes)
+        {
+            bool horizontalOverlap =
+                (BirdX + BirdWidth - hitMargin > pipe.Xpos) &&
+                (BirdX + hitMargin < pipe.Xpos + PipeWidth - hitMargin);
+
+            var topHeight = Math.Clamp(pipe.GapYpos, 80, 500 - PipeGap - 80);
+            if (horizontalOverlap)
+            {
+                bool hitTop = (birdY + hitMargin) < topHeight;
+                bool hitBottom = (birdY + BirdHeight - hitMargin) > (topHeight + PipeGap);
+                if (hitTop || hitBottom) { EndGame(); return; }
+            }
+        }
+    }
+
+    private void EndGame()
+    {
+        if (!isGameRunning || isDisposed) return;
+        isGameRunning = false;
+        velocity = 0;
+        try { loopCts?.Cancel(); } catch { }
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (isDisposed) return; isDisposed = true; isGameRunning = false;
+        try { loopCts?.Cancel(); loopCts?.Dispose(); } catch { }
+        await Task.CompletedTask;
+    }
 }

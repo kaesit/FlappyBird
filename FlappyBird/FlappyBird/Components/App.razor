@@ -4,18 +4,60 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" />
-    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
-    <link rel="stylesheet" href="@Assets["app.css"]" />
-    <link rel="stylesheet" href="@Assets["FlappyBird.styles.css"]" />
-    <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <HeadOutlet @rendermode="InteractiveWebAssembly" />
+    <base href="/game" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="FlappyBird.styles.css" />
+    <HeadOutlet />
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveWebAssembly" />
-    <script src="_framework/blazor.web.js"></script>
+<Routes />
+<script src="_framework/blazor.web.js"></script>
+    
+<!-- Inline JS - Kesin Çalışır -->
+<script>
+        console.log('🎮 Inline JS Loading...');
+
+        window.debugCountBirds = function() {
+            try {
+                const count = document.querySelectorAll('.bird').length;
+                console.log('🐦 Bird count:', count);
+                return count;
+            } catch (e) {
+                console.error('❌ debugCountBirds error:', e);
+                return -1;
+            }
+        };
+
+        window.keepSingleBird = function(keeperId) {
+            try {
+                const birds = Array.from(document.querySelectorAll('.bird'));
+                console.log('🔍 Total birds before cleanup:', birds.length);
+                
+                birds.forEach(b => {
+                    if (b.id !== keeperId) {
+                        console.log('🗑️ Removing bird:', b.id);
+                        b.remove();
+                    }
+                });
+                
+                const remaining = document.querySelectorAll('.bird').length;
+                console.log('✅ Birds after cleanup:', remaining);
+                return remaining;
+            } catch (e) {
+                console.error('❌ keepSingleBird error:', e);
+                return -1;
+            }
+        };
+
+        // Test
+        window.addEventListener('load', function() {
+            console.log('✅ Page loaded, JS functions ready');
+            console.log('🧪 Test debugCountBirds:', typeof window.debugCountBirds);
+        });
+        
+        console.log('✅ Inline JS Loaded Successfully!');
+    </script>
 </body>
 
 </html>

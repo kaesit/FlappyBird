@@ -1,43 +1,18 @@
 @using System.Globalization
-
-<div class="pipe-container" style="left: @PipeXpos.ToString(CultureInfo.InvariantCulture)px;">
-    
-    <div style="position:absolute; top: -20px; color: red; background-color: white; z-index: 1000; font-weight: bold;">
-        Üst Yükseklik: @TopPipeHeight.ToString("F0") | X Konumu: @PipeXpos.ToString("F0")
-    </div>
-    
-    @* Ust Boru *@
-    <div class="pipe top-pipe" style="height: @TopPipeHeight.ToString(CultureInfo.InvariantCulture)px;"></div>
-    
-    @* Alt Boru *@
-    <div class="pipe bottom-pipe" style="height: @BottomPipeHeight.ToString(CultureInfo.InvariantCulture)px;"></div>
-</div>
-
 @code {
-    // ----------------------------------------------------
-    // PARAMETRELER (FlappyGame'den gelen veriler)
-    // ----------------------------------------------------
-    [Parameter]
-    [EditorRequired] // Bu parametrenin FlappyGame tarafından sağlanması gerektiğini belirtir
-    public double PipeXpos { get; set; } 
+    [Parameter, EditorRequired]
+    public double PipeXpos { get; set; }
 
-    [Parameter]
-    [EditorRequired]
-    public int GapYpos { get; set; } 
-    
-    // ----------------------------------------------------
-    // SABİTLER VE HESAPLANAN DEĞERLER
-    // ----------------------------------------------------
-    private const int GameHeight = 500; 
-    private const int PipeGap = 120; 
+    [Parameter, EditorRequired]
+    public int GapYpos { get; set; }
 
-    // Boru yüksekliklerini hesaplama (CSS ile senkronize olmalı)
+    private const int GameHeight = 500;
+    private const int PipeGap = 120;
+
     private double TopPipeHeight => GapYpos;
     private double BottomPipeHeight => GameHeight - (GapYpos + PipeGap);
-    
-    // Kültür ayarı için, bileşen alanında tutulur
-    private CultureInfo CultureInfo { get; } = CultureInfo.InvariantCulture;
-
-    // NOT: OnInitialized metodunu sildik. Çünkü global kültür ayarı burada gereksizdir, 
-    // yerel CultureInfo kullanımı yeterlidir ve daha temizdir.
 }
+<div class="pipe-container" style=@($"left:{PipeXpos}px;")>
+    <div class="pipe top-pipe" style=@($"height:{GapYpos}px")></div>
+    <div class="pipe bottom-pipe" style=@($"height:{400 - (GapYpos + 120)}px")></div>
+</div>
